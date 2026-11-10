@@ -1,0 +1,10 @@
+Список библиотек Mast control v2
+================================
+
+Wire.h              -> lib_V2/Wire           (I2C A4/A5)
+INA219_WE.h         -> lib_V2/INA219_WE        (ток / ИВЭ-50)
+U8g2lib.h           -> lib_V2/U8g2 / Arduino IDE «U8g2»  (SSD1309 I2C)
+
+Arduino.h           -> ядро Nano / PlatformIO (src_V2)
+
+Proteus             -> lib_V2/proteus_V2/    (OLED: модель SSD1306 I2C)

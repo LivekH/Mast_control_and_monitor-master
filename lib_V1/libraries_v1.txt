@@ -1,0 +1,10 @@
+Список библиотек Mast control v1 (mast_control_v1.ino)
+====================================================
+
+Wire.h              -> lib_V1/Wire          (I2C)
+INA219_WE.h         -> lib_V1/INA219_WE     (ток 4-20 mA)
+GyverSegment.h      -> lib_V1/GyverSegment (TM1637)
+
+Arduino.h           -> ядро платы / PlatformIO only (src/mast_control_v1.cpp)
+
+Proteus v1          -> lib_V1/proteus_V1/Mast_control_and_monitor-master_scheme V3_Dwin.pdsprj

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Система управления и мониторинга</title>
+  <style>
+    :root {
+      --text: #1a1a1a;
+      --muted: #444;
+      --border: #ccc;
+      --head: #0d47a1;
+      --row-alt: #f5f8fc;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      font-size: 14pt;
+      line-height: 1.45;
+      color: var(--text);
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 32px 48px;
+      background: #fff;
+    }
+    h1 {
+      color: var(--head);
+      font-size: 1.75rem;
+      border-bottom: 3px solid var(--head);
+      padding-bottom: 8px;
+      margin-top: 0;
+    }
+    h2 {
+      color: var(--head);
+      font-size: 1.25rem;
+      margin-top: 2rem;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 1.05rem;
+      margin-top: 1.25rem;
+      color: #333;
+    }
+    .meta {
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+    .meta strong { color: var(--text); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 20px;
+      font-size: 12.5pt;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #e3f2fd;
+      font-weight: 600;
+    }
+    tr:nth-child(even) { background: var(--row-alt); }
+    ol, ul { padding-left: 1.4rem; }
+    li { margin: 6px 0; }
+    .note {
+      font-style: italic;
+      color: var(--muted);
+      font-size: 12pt;
+      margin: 8px 0;
+    }
+    .print-hint {
+      background: #fff8e1;
+      border: 1px solid #ffc107;
+      padding: 10px 14px;
+      border-radius: 4px;
+      font-size: 12pt;
+      margin-bottom: 24px;
+    }
+    code { background: #f0f0f0; padding: 1px 4px; font-size: 0.9em; }
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      font-size: 11pt;
+      color: var(--muted);
+    }
+    @media print {
+      body { padding: 12px; font-size: 11pt; }
+      .print-hint { display: none; }
+      h2 { page-break-before: auto; }
+      table { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="print-hint">
+  Откройте этот файл двойным щелчком в браузере (Chrome, Edge, Firefox). Печать или PDF: <strong>Ctrl+P</strong> → «Сохранить как PDF».
+  Сюда можно вставить схему: распечатать схему отдельным листом или вставить изображение в PDF.
+</div>
+
+<h1>Система управления и мониторинга</h1>
+
+<p class="meta">
+  <strong>Версия документа:</strong> по прошивке <code>mast_control_v1/mast_control_v1.ino</code><br>
+  <strong>Назначение:</strong> управление электромагнитными клапанами мачты и «пальцев» с пульта оператора,
+  индикация давления по петле 4–20&nbsp;mA, блокировка одновременной работы осей.<br>
+  <strong>Состав основной платы:</strong> плата микроконтроллера, релейный блок, модуль считывания тока, семисегментный цифровой дисплей (4 разряда).
+</p>
+
+<h2>1. Общий принцип работы</h2>
+<ol>
+  <li><strong>Пульт оператора</strong> (3 джойстика, нейтральные концевики, питание 5&nbsp;V) подключается к <strong>основной плате</strong> разъёмом <strong>LD20, 9 pin, male/female</strong> (0,2&nbsp;mm²). Внутри пульта и на плате микроконтроллера разводка — <strong>Dupont</strong>.</li>
+  <li>МК опрашивает <strong>концевики нейтрали</strong> и <strong>аналоговые входы</strong>. В каждый момент <strong>активна не более одной оси</strong> (1 — мачта 1, 2 — мачта 2, 3 — «пальцы»); остальные заблокированы.</li>
+  <li>По активной оси МК <strong>замыкает одно из двух реле</strong> направления. Направление <strong>фиксируется до возврата в нейтраль по концевику</strong>.</li>
+  <li><strong>Пропорциональный канал:</strong> с пина <strong>D11</strong> (ШИМ 0–255) на электромагнитный клапан; один общий ШИМ, работает только активная ось.</li>
+  <li><strong>Давление:</strong> датчик 4–20&nbsp;mA → <strong>модуль считывания тока</strong> (I2C) → <strong>семисегментный цифровой дисплей</strong> (4 разряда).</li>
+  <li><strong>Питание пульта:</strong> 12&nbsp;V → DC/DC 12/5&nbsp;V → <strong>+5&nbsp;V</strong> через <strong>аварийную кнопку СТОП</strong> на плату микроконтроллера и разводку 5&nbsp;V/GND для джойстиков.</li>
+  <li>На полевые выходы — разъём <strong>LD20, 12 pin, male/female</strong> (0,35&nbsp;mm²): клапаны, +12&nbsp;V, GND, петля 4–20&nbsp;mA, ШИМ.</li>
+</ol>
+
+<h2>2. Работа одного джойстика (пример — ось 1, мачта 1)</h2>
+<p><strong>Джойстики 2 и 3</strong> работают <strong>так же</strong>: тот же концевик, те же пороги АЦП, защёлка реле, общий ШИМ, правило одной активной оси. Отличаются пины (A1/A2, D9/D10), пары реле (D4/D5, D6/D7) и подписи «вверх/вниз» или «закрыть/открыть».</p>
+
+<table>
+  <thead><tr><th>Канал</th><th>Назначение</th><th>Поведение</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Концевик нейтрали</strong></td><td>Разрешение движения</td><td>Разомкнут = ось в нейтрали. Замкнут на GND = ось может управлять (если не заблокирована другой активной осью).</td></tr>
+    <tr><td><strong>Потенциометр</strong> (A0)</td><td>Направление и ШИМ</td><td>АЦП 0…1023 по положению ручки.</td></tr>
+  </tbody>
+</table>
+
+<h3>2.1. В нейтрали</h3>
+<ol>
+  <li>Концевик разомкнут → на D8 логическая «1» (pull-up).</li>
+  <li>Реле мачты 1 выкл., ШИМ = 0, <strong>защёлка направления сброшена</strong>.</li>
+  <li>Без замкнутого концевика положение рукоятки <strong>не включает</strong> клапаны — нейтраль только по кнопке, не по центру рукоятки.</li>
+</ol>
+
+<h3>2.2. Выход из нейтрали</h3>
+<ol>
+  <li>Концевик замкнут → D8 «0» (дребезг ~25&nbsp;ms отфильтрован).</li>
+  <li>Ось <strong>защёлкивается</strong> как активная до нейтрали концевиком; другие оси не перехватывают управление.</li>
+  <li>Чтение A0: 4 выборки, усреднение, сглаживание ¾+¼.</li>
+</ol>
+
+<h3>2.3. Защёлка реле (center 510)</h3>
+<table>
+  <thead><tr><th>АЦП</th><th>Реле ось 1</th></tr></thead>
+  <tbody>
+    <tr><td>≥ 540</td><td>«Вверх» — <strong>D2</strong></td></tr>
+    <tr><td>≤ 480</td><td>«Вниз» — <strong>D3</strong></td></tr>
+    <tr><td>481…539</td><td>Направление ещё не выбрано</td></tr>
+  </tbody>
+</table>
+<p>Направление <strong>один раз за ход</strong> из нейтрали. Смена вверх↔вниз — только после возврата концевика в нейтраль и нового выхода.</p>
+
+<h3>2.4. ШИМ после реле</h3>
+<table>
+  <thead><tr><th>Защёлка</th><th>Старт ШИМ</th><th>Шкала</th></tr></thead>
+  <tbody>
+    <tr><td>Вверх</td><td>АЦП ≥ 570</td><td>570…758 → ШИМ 51…255</td></tr>
+    <tr><td>Вниз</td><td>АЦП ≤ 450</td><td>250…450 → ШИМ 51…255</td></tr>
+  </tbody>
+</table>
+<p>Мёртвая зона между порогами реле и ШИМ: сначала направление (+12&nbsp;V через реле), затем мощность (D11). Deadband ШИМ ±5.</p>
+
+<h3>2.5. Выдача на поле</h3>
+<p>Каждый цикл: сброс всех реле и ШИМ → только D2 или D3 (LOW = вкл.) + <strong>ШИМ на D11</strong> / LD20 pin 12. Оси 2 и 3 заблокированы.</p>
+
+<h3>2.6. Возврат в нейтраль</h3>
+<p>Концевик разомкнут → сброс защёлки и фильтров → все выходы движения выкл. Дальше можно другую ось или то же направление после нового выхода из нейтрали.</p>
+
+<h3>2.7. Шпаргалка оператора</h3>
+<pre style="background:#f5f5f5;padding:12px;border-radius:4px;font-size:11pt;line-height:1.5;">Нейтраль (концевик разомкнут)     → всё стоит
+Вышел из нейтрали + вверх/вниз    → защёлкнулось реле
+Дотянул ручку дальше              → растёт ШИМ
+Вернул концевик в нейтраль        → стоп; можно другую ось</pre>
+
+<h2>3. Блокировки и защита оператора</h2>
+<table>
+  <thead>
+    <tr><th>Механизм</th><th>Описание</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Одна активная ось</strong></td><td>Защёлка до нейтрали: ось 1 → блок 2 и 3; ось 2 → блок 1 и 3; ось 3 → блок 1 и 2. Выбор 1→2→3 только когда все были в нейтрали.</td></tr>
+    <tr><td><strong>Нейтраль концевика</strong></td><td>В нейтрали концевик <strong>разомкнут</strong> (лог. 1, pull-up). В работе — <strong>замкнут на GND</strong> (лог. 0). Все в нейтрали — реле и ШИМ не активны.</td></tr>
+    <tr><td><strong>Защёлка реле</strong></td><td>Направление выбирается по АЦП один раз; реле не переключается у центра, пока не нейтраль концевиком.</td></tr>
+    <tr><td><strong>Пороги АЦП</strong></td><td>Center 510; реле ≤480 / ≥540; ШИМ ≤450 / ≥570; сглаживание АЦП и deadband ШИМ ±5.</td></tr>
+    <tr><td><strong>Аварийный стоп</strong></td><td>Разрыв +5&nbsp;V до кнопки СТОП отключает МК и пульт (аппаратно).</td></tr>
+    <tr><td><strong>Петля 4–20&nbsp;mA</strong></td><td>&lt;3,5&nbsp;mA → <code>-OC-</code>; &gt;20,2&nbsp;mA → <code>-SC-</code>; &lt;4,15&nbsp;mA → 0 на индикаторе.</td></tr>
+    <tr><td><strong>I2C / модуль тока</strong></td><td>Сбой &gt;5&nbsp;с → <code>I2c-</code> на дисплее.</td></tr>
+    <tr><td><strong>Реле</strong></td><td>Активный уровень LOW. Перед выдачей — сброс всех реле и ШИМ, затем только активная ось.</td></tr>
+  </tbody>
+</table>
+
+<h2>4. Пульт оператора — разъём LD20 9 pin (0,2&nbsp;mm²)</h2>
+<p>Связь пульт ↔ основная плата: <strong>LD20, 9 контактов, male/female</strong>. Джойстики и выводы на плату микроконтроллера — <strong>Dupont</strong>.</p>
+<table>
+  <thead>
+    <tr><th>№</th><th>Назначение</th><th>Цвет</th><th>На плате МК</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>VCC +5&nbsp;V in (после СТОП)</td><td>Красный</td><td>+5&nbsp;V платы микроконтроллера</td></tr>
+    <tr><td>2</td><td>+5&nbsp;V out (джойстики)</td><td>Оранжевый</td><td>Шина +5&nbsp;V потенциометров</td></tr>
+    <tr><td>3</td><td>Button Joy1</td><td>Белый</td><td><strong>D8</strong> → GND при работе</td></tr>
+    <tr><td>4</td><td>Vout Joy1</td><td>Зелёный</td><td><strong>A0</strong></td></tr>
+    <tr><td>5</td><td>GND</td><td>—</td><td><strong>GND</strong> платы микроконтроллера</td></tr>
+    <tr><td>6</td><td>Button Joy2</td><td>Серый</td><td><strong>D9</strong></td></tr>
+    <tr><td>7</td><td>Vout Joy2</td><td>Жёлтый</td><td><strong>A1</strong></td></tr>
+    <tr><td>8</td><td>Button Joy3</td><td>Фиолетовый</td><td><strong>D10</strong></td></tr>
+    <tr><td>9</td><td>Vout Joy3</td><td>Синий</td><td><strong>A2</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>Концевик:</strong> нейтраль — разомкнут; работа — замкнут на GND.</p>
+
+<table>
+  <thead>
+    <tr><th>Ось</th><th>Джойстик</th><th>Реле</th><th>ШИМ</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>Joy1</td><td>Мачта 1 вверх / вниз</td><td>Общий D11</td></tr>
+    <tr><td>2</td><td>Joy2</td><td>Мачта 2 вверх / вниз</td><td>D11</td></tr>
+    <tr><td>3</td><td>Joy3</td><td>«Пальцы»: закрыть / открыть</td><td>D11</td></tr>
+  </tbody>
+</table>
+<p>Ось 3: АЦП «+» — <strong>закрыть</strong> (D6); «−» — <strong>открыть</strong> (D7).</p>
+
+<h2>5. Основная плата</h2>
+
+<h3>5.1. Выходы платы микроконтроллера</h3>
+<p class="note">К релейному модулю, дисплею и модулю тока — разводка Dupont по схеме монтажа.</p>
+<table>
+  <thead><tr><th>Функция</th><th>Пин МК</th></tr></thead>
+  <tbody>
+    <tr><td>Реле мачта 1 вверх</td><td><strong>D2</strong></td></tr>
+    <tr><td>Реле мачта 1 вниз</td><td><strong>D3</strong></td></tr>
+    <tr><td>Реле мачта 2 вверх</td><td><strong>D4</strong></td></tr>
+    <tr><td>Реле мачта 2 вниз</td><td><strong>D5</strong></td></tr>
+    <tr><td>Реле «пальцы» закрыть</td><td><strong>D6</strong></td></tr>
+    <tr><td>Реле «пальцы» открыть</td><td><strong>D7</strong></td></tr>
+    <tr><td>ШИМ клапан</td><td><strong>D11</strong></td></tr>
+    <tr><td>Дисплей, такт / данные</td><td><strong>D12</strong> / <strong>D13</strong></td></tr>
+    <tr><td>Модуль тока SDA / SCL</td><td><strong>A4</strong> / <strong>A5</strong></td></tr>
+  </tbody>
+</table>
+
+<h3>5.2. Выходной разъём LD20 12 pin (0,35&nbsp;mm²), +12&nbsp;V до 5&nbsp;A</h3>
+<p><strong>LD20, 12 контактов, male/female</strong> — клапаны, питание, петля 4–20&nbsp;mA, ШИМ.</p>
+<table>
+  <thead>
+    <tr><th>№</th><th>Назначение</th><th>Цвет</th><th>Примечание</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>Valve 3 up</td><td>Оранжевый</td><td>Ось 3 / закрыть (D6)</td></tr>
+    <tr><td>2</td><td>Valve 3 down</td><td>Жёлтый</td><td>Ось 3 / открыть (D7)</td></tr>
+    <tr><td>3</td><td>Valve 2 up</td><td>Синий</td><td>Мачта 2 вверх (D4)</td></tr>
+    <tr><td>4</td><td>VCC +12&nbsp;V</td><td>Красный</td><td>Питание клапанов/реле</td></tr>
+    <tr><td>5</td><td>Valve 2 down</td><td>Белый</td><td>Мачта 2 вниз (D5)</td></tr>
+    <tr><td>6</td><td>Valve 1 up</td><td>Серый</td><td>Мачта 1 вверх (D2)</td></tr>
+    <tr><td>7</td><td>GND</td><td>Чёрный</td><td>Общий минус</td></tr>
+    <tr><td>8</td><td>GND</td><td>Чёрный</td><td>Дубль</td></tr>
+    <tr><td>9</td><td>Valve 1 down</td><td>Фиолетовый</td><td>Мачта 1 вниз (D3)</td></tr>
+    <tr><td>10</td><td>D+</td><td>Зелёный</td><td>Петля 4–20&nbsp;mA +</td></tr>
+    <tr><td>11</td><td>D−</td><td>Коричневый</td><td>Петля 4–20&nbsp;mA −</td></tr>
+    <tr><td>12</td><td>PWM com</td><td>по схеме</td><td>Общий силового ключа от D11</td></tr>
+  </tbody>
+</table>
+<p class="note">Точная распиновка pin 12 — по силовой схеме; управляющий ШИМ — с D11.</p>
+
+<h3>5.3. Пропорциональное управление</h3>
+<ul>
+  <li>PWM с D11: мин. ~20&nbsp;% за порогом, макс. 255 у упора (АЦП 250 / 758).</li>
+  <li>Неактивная ось: ШИМ выключен (HIGH на D11).</li>
+</ul>
+
+<h2>6. Датчик давления и дисплей</h2>
+<ul>
+  <li>Модуль считывания тока, I2C адрес 0x40; опрос каждый цикл; на экран — среднее за 100&nbsp;ms.</li>
+  <li>4&nbsp;mA → 0, 20&nbsp;mA → 250 (шкала на индикаторе, калибруемая).</li>
+</ul>
+<table>
+  <thead><tr><th>Семисегментный дисплей</th><th>Условие</th></tr></thead>
+  <tbody>
+    <tr><td><code>-OC-</code></td><td>Обрыв петли</td></tr>
+    <tr><td><code>-SC-</code></td><td>Перегруз / КЗ</td></tr>
+    <tr><td><code>I2c-</code></td><td>Нет связи с модулем тока &gt;5&nbsp;с</td></tr>
+    <tr><td>Цифры</td><td>Норма</td></tr>
+    <tr><td><code>-OC-</code> → <code>-SC-</code> → <code>donE</code></td><td>Самотест при включении</td></tr>
+  </tbody>
+</table>
+
+<h2>7. Порядок работы оператора</h2>
+<ol>
+  <li>Включить питание; СТОП отпущена.</li>
+  <li>После <code>donE</code> — давление или код аварии.</li>
+  <li>Все джойстики в нейтрали.</li>
+  <li>Выйти из нейтрали <strong>одной</strong> осью.</li>
+  <li>Отклонить ручку: реле, затем ШИМ.</li>
+  <li>Смена оси — нейтраль концевиком, затем другая ось.</li>
+</ol>
+
+<h2>8. Настройки прошивки (сервис)</h2>
+<p>В <code>mast_control_v1.ino</code>, блок «ПЕРЕМЕННЫЕ И НАСТРОЙКИ»:</p>
+<ul>
+  <li><code>joyProf1/2/3</code> — пороги джойстиков</li>
+  <li><code>joy_adc_*_travel</code>, <code>ina_*</code>, <code>display_*</code></li>
+  <li><code>serial_debug_enabled</code> — false в работе</li>
+</ul>
+
+<h2>9. Монтаж</h2>
+<ul>
+  <li>Общая GND обязательна (МК, реле, 12&nbsp;V, петля, пульт).</li>
+  <li><strong>LD20 9 pin</strong> — пульт ↔ плата; <strong>LD20 12 pin</strong> — плата ↔ полевые клапаны и петля.</li>
+  <li><strong>Dupont</strong> — джойстики, разводка на плате микроконтроллера, релейный модуль, дисплей, модуль тока; качество обжима влияет на АЦП.</li>
+  <li>Перепутаны вверх/вниз — поменять D2/D3 или жгут.</li>
+</ul>
+
+<footer>
+  Разработчики: Олег «Salty NUggeTZ» Величко, Игорь «Terrano».
+  Документ по итогам доводки прошивки и монтажа. Место для вставки схемы — отдельный лист или ниже.
+</footer>
+
+</body>
+</html>

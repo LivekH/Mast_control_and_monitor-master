@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Руководство пользователя — Mast control v2</title>
+  <style>
+    :root {
+      --text: #1a1a1a;
+      --muted: #444;
+      --border: #ccc;
+      --head: #0d47a1;
+      --row-alt: #f5f8fc;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      font-size: 14pt;
+      line-height: 1.45;
+      color: var(--text);
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 32px 48px;
+      background: #fff;
+    }
+    h1 {
+      color: var(--head);
+      font-size: 1.75rem;
+      border-bottom: 3px solid var(--head);
+      padding-bottom: 8px;
+      margin-top: 0;
+    }
+    h2 {
+      color: var(--head);
+      font-size: 1.25rem;
+      margin-top: 2rem;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 1.05rem;
+      margin-top: 1.25rem;
+      color: #333;
+    }
+    .meta {
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+    .meta strong { color: var(--text); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 20px;
+      font-size: 12.5pt;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #e3f2fd;
+      font-weight: 600;
+    }
+    tr:nth-child(even) { background: var(--row-alt); }
+    ol, ul { padding-left: 1.4rem; }
+    li { margin: 6px 0; }
+    .note {
+      font-style: italic;
+      color: var(--muted);
+      font-size: 12pt;
+      margin: 8px 0;
+    }
+    .print-hint {
+      background: #fff8e1;
+      border: 1px solid #ffc107;
+      padding: 10px 14px;
+      border-radius: 4px;
+      font-size: 12pt;
+      margin-bottom: 24px;
+    }
+    pre.screen {
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 10.5pt;
+      line-height: 1.35;
+      background: #f5f5f5;
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      overflow-x: auto;
+      margin: 12px 0 20px;
+    }
+    code { background: #f0f0f0; padding: 1px 4px; font-size: 0.9em; }
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      font-size: 11pt;
+      color: var(--muted);
+    }
+    @media print {
+      body { padding: 12px; font-size: 11pt; }
+      .print-hint { display: none; }
+      h2 { page-break-before: auto; }
+      table { page-break-inside: avoid; }
+      pre.screen { font-size: 9pt; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="print-hint">
+  Откройте файл в браузере (Chrome, Edge, Firefox). Печать или PDF: <strong>Ctrl+P</strong> → «Сохранить как PDF».
+  Актуальная текстовая версия: <code>Руководство_пользователя_v2.md</code> в этой же папке.
+</div>
+
+<h1>Руководство пользователя — пульт управления мачтой (версия&nbsp;2)</h1>
+
+<p class="meta">
+  <strong>Прошивка:</strong> <code>mast_control_v2</code><br>
+  <strong>Дисплей:</strong> OLED 128×64, I2C (модуль 2,42″)<br>
+  <strong>Давление:</strong> петля <strong>4–20&nbsp;mA</strong> (ИВЭ-50), измерение тока модулем INA219<br>
+  <strong>Аудитория:</strong> оператор пульта — чтение экрана и типовые действия. Монтаж: <code>Пины_Arduino_Nano_v2.md</code>;
+  логика джойстиков (как v1): <a href="Описание_системы_управления.html">Описание_системы_управления.html</a>.
+</p>
+
+<h2>1. Назначение</h2>
+<p>Пульт предназначен для:</p>
+<ul>
+  <li><strong>подъёма и спуска</strong> первой и второй секций мачты (два джойстика);</li>
+  <li><strong>выдвижения и задвижения</strong> «пальцев» (третий джойстик);</li>
+  <li><strong>пропорционального</strong> управления гидравлическим клапаном (мощность по отклонению ручки);</li>
+  <li><strong>индикации давления</strong> в гидросистеме (шкала <strong>0…250&nbsp;bar</strong>);</li>
+  <li><strong>установки рабочего нуля</strong> датчика давления кнопкой на панели.</li>
+</ul>
+<p>Одновременно <strong>активна только одна ось</strong>. Остальные джойстики не управляют клапанами, пока первая не возвращена в <strong>нейтраль</strong> (раздел&nbsp;4).</p>
+
+<h2>2. Меры безопасности</h2>
+<ol>
+  <li>Перед работой убедитесь, что <strong>аварийная кнопка «СТОП»</strong> (если установлена) разрешает питание пульта и МК.</li>
+  <li><strong>Нейтраль по безопасности</strong> — только когда <strong>разомкнут концевик</strong> на рукоятке. Положение ручки «по центру» <strong>без</strong> концевика <strong>не</strong> считается нейтралью.</li>
+  <li>Кнопку <strong>нуль давления</strong> удерживайте намеренно: срабатывание после <strong>3&nbsp;с</strong> удержания.</li>
+  <li>При надписях <strong>OPEN</strong>, <strong>SHORT</strong>, <strong>I2C FAILED</strong> не опирайтесь на цифры давления — устраните неисправность или обратитесь к обслуживающему персоналу.</li>
+</ol>
+
+<h2>3. Включение и заставка</h2>
+<p>После подачи питания на OLED кратковременно отображаются:</p>
+<table>
+  <thead>
+    <tr><th>Строка 1</th><th>Строка 2</th><th>Смысл</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>PRESSURE SENSOR</td><td>OPEN</td><td>Тест индикации (не авария)</td></tr>
+    <tr><td>PRESSURE SENSOR</td><td>SHORT</td><td>Тест индикации</td></tr>
+    <tr><td>READY</td><td>v2</td><td>Прибор готов к работе</td></tr>
+  </tbody>
+</table>
+<p>Затем открывается <strong>основной экран</strong> (раздел&nbsp;5).</p>
+
+<h2>4. Управление джойстиками (кратко)</h2>
+<table>
+  <thead>
+    <tr><th>Элемент</th><th>Назначение</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Концевик нейтрали</strong></td><td>Разомкнут → ось отключена. Замкнут → ось может работать.</td></tr>
+    <tr><td><strong>Потенциометр (ручка)</strong></td><td>Сначала <strong>реле</strong> (направление), затем при большем отклонении — <strong>ШИМ</strong> пропорционального клапана.</td></tr>
+  </tbody>
+</table>
+
+<h3>Оси</h3>
+<table>
+  <thead>
+    <tr><th>Джойстик</th><th>Функция</th><th>Реле</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>1</strong></td><td>Секция мачты <strong>1</strong></td><td>Подъём / спуск</td></tr>
+    <tr><td><strong>2</strong></td><td>Секция мачты <strong>2</strong></td><td>Подъём / спуск</td></tr>
+    <tr><td><strong>3</strong></td><td><strong>«Пальцы»</strong></td><td>Закрыть / открыть</td></tr>
+  </tbody>
+</table>
+
+<p><strong>Типовая последовательность:</strong></p>
+<ol>
+  <li>Нейтраль (концевик <strong>разомкнут</strong>).</li>
+  <li>Нажать/отклонить рукоятку — ось <strong>активна</strong> (заполненный кружок на дисплее).</li>
+  <li>Отклонить: <strong>вверх/закрыть</strong> (стрелка вверх) или <strong>вниз/открыть</strong> (стрелка вниз).</li>
+  <li>Завершение — снова <strong>нейтраль</strong>.</li>
+</ol>
+<p>Смена направления (вверх ↔ вниз) — только после <strong>полного</strong> возврата в нейтраль по концевику.</p>
+<p class="note">Подробности — в <a href="Описание_системы_управления.html">Описание системы управления</a> (логика v1 = v2).</p>
+
+<h2>5. Главный экран (GUI)</h2>
+<p>Верх — давление или сообщение; низ — оси и ШИМ (нижняя часть почти всегда на экране).</p>
+
+<pre class="screen">┌────────────────────────────────────────┐
+│        012 bar          │ 100          │  ← давление или ошибка
+│                         │ ┃            │     шкала ШИМ справа
+├─────────────────────────┤ ┃            │
+│    ○      ○      ●↑     │ ┃▓▓          │  ← пальцы, мачта2, мачта1
+└────────────────────────────────────────┘
+                                    0</pre>
+
+<h3>5.1. Индикация давления (норма)</h3>
+<ul>
+  <li>Цифры <strong>000…250</strong> и подпись <strong>bar</strong>.</li>
+  <li>Шаг на дисплее — <strong>2&nbsp;bar</strong> (0, 2, 4, …).</li>
+  <li>Малые значения у нуля могут показываться как <strong>000</strong> (подавление дрожи).</li>
+  <li>По умолчанию: <strong>4&nbsp;mA ≈ 0&nbsp;bar</strong>, <strong>20&nbsp;mA ≈ 250&nbsp;bar</strong>; после нуля (§6) — от тока в момент tare.</li>
+</ul>
+<p><strong>Важно:</strong> ток <strong>ниже</strong> зафиксированного нуля на дисплее даёт <strong>0&nbsp;bar</strong>, не «минус». Сильное падение — см. <strong>OPEN</strong> (§7).</p>
+
+<h3>5.2. Три кружка (слева → направо)</h3>
+<table>
+  <thead>
+    <tr><th>На экране</th><th>Ось</th><th>Пульт</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Слева</td><td>«Пальцы» (3)</td><td>Джойстик 3</td></tr>
+    <tr><td>Центр</td><td>Мачта 2</td><td>Джойстик 2</td></tr>
+    <tr><td>Справа</td><td>Мачта 1</td><td>Джойстик 1</td></tr>
+  </tbody>
+</table>
+<table>
+  <thead>
+    <tr><th>Вид</th><th>Значение</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Пустой круг ○</td><td>Ось не активна</td></tr>
+    <tr><td>Залитый круг ●</td><td>Ось <strong>активна</strong></td></tr>
+    <tr><td>Стрелка вверх</td><td>Вверх / закрыть</td></tr>
+    <tr><td>Стрелка вниз</td><td>Вниз / открыть</td></tr>
+  </tbody>
+</table>
+
+<h3>5.3. Шкала справа (ШИМ)</h3>
+<ul>
+  <li>Сверху <strong>100</strong>, снизу <strong>0</strong> — мощность пропорционального клапана активной оси (0…100&nbsp;%).</li>
+  <li>Заполнение растёт после срабатывания направления реле.</li>
+  <li>Нет активной оси — шкала пустая.</li>
+</ul>
+
+<h3>5.4. Горизонтальная линия</h3>
+<p>Разделитель между зоной давления и индикаторами осей.</p>
+
+<h2>6. Кнопка «нуль давления» (ZERO)</h2>
+<p><strong>На панели:</strong> кнопка «нуль» / tare (на МК — <strong>D12</strong>, нажатие на <strong>GND</strong>).</p>
+<p><strong>Назначение:</strong> запомнить текущий ток в петле как <strong>0&nbsp;bar</strong> (в RAM; после перезагрузки снова опора 4&nbsp;mA, пока не выполните tare).</p>
+
+<ol>
+  <li>Установите режим/давление, которое должно читаться как <strong>0&nbsp;bar</strong>.</li>
+  <li>Удерживайте кнопку <strong>не менее 3&nbsp;с</strong>.</li>
+  <li>На экране: <strong>TARE…</strong> → <strong>ZERO SET</strong> (~1,2&nbsp;с).</li>
+  <li>Отпустите кнопку — <strong>000&nbsp;bar</strong> при том же токе.</li>
+  <li>Повторный tare — после отпускания и паузы.</li>
+</ol>
+
+<table>
+  <thead>
+    <tr><th>Сообщение</th><th>Значение</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>TARE…</strong></td><td>Идёт удержание</td></tr>
+    <tr><td><strong>ZERO SET</strong></td><td>Ноль принят</td></tr>
+    <tr><td><strong>TARE FAIL</strong></td><td>Условия не выполнены</td></tr>
+  </tbody>
+</table>
+
+<p><strong>TARE FAIL</strong> — нет I2C, <strong>OPEN</strong>/<strong>SHORT</strong>, ток вне ~<strong>3,6…19&nbsp;mA</strong>.</p>
+
+<h2>7. Сообщения об ошибках</h2>
+<p>При ошибках цифры давления скрыты; нижняя полоса (оси, ШИМ) остаётся.</p>
+<table>
+  <thead>
+    <tr><th>Экран</th><th>Для оператора</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>PRESSURE SENSOR / <strong>OPEN</strong></td><td>Слишком малый ток (обрыв, нет сигнала).</td></tr>
+    <tr><td>PRESSURE SENSOR / <strong>SHORT</strong></td><td>Слишком большой ток (перегруз, КЗ).</td></tr>
+    <tr><td><strong>I2C</strong> / <strong>FAILED</strong></td><td>Нет обмена по I2C (проводка, питание модулей).</td></tr>
+  </tbody>
+</table>
+<p>Прекратите опору на давление, проверьте ИВЭ-50 и модули, при необходимости — специалист. После восстановления — снова 000…250&nbsp;bar.</p>
+
+<h2>8. Типовые ситуации</h2>
+<table>
+  <thead>
+    <tr><th>Ситуация</th><th>На экране</th><th>Действие</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Старт</td><td>READY v2 → главный экран</td><td>Работа по §4</td></tr>
+    <tr><td>Рост давления</td><td>Цифры с шагом 2&nbsp;bar</td><td>Норма</td></tr>
+    <tr><td>После ZERO SET</td><td>000&nbsp;bar</td><td>Новая нулевая точка</td></tr>
+    <tr><td>Другой джойстик «молчит»</td><td>Кружок пустой</td><td>Нейтраль активной оси</td></tr>
+    <tr><td>Низкий ШИМ</td><td>Стрелка есть, шкала низкая</td><td>Сильнее отклонить ручку</td></tr>
+  </tbody>
+</table>
+
+<h2>9. Связанные документы</h2>
+<table>
+  <thead>
+    <tr><th>Документ</th><th>Содержание</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>Пины_Arduino_Nano_v2.md</code></td><td>Подключение выводов</td></tr>
+    <tr><td><code>Резюме_работ_v2.md</code></td><td>Отличия v2 от v1</td></tr>
+    <tr><td><code>План_версии_v2.md</code></td><td>План развития</td></tr>
+    <tr><td><a href="Описание_системы_управления.html">Описание системы управления</a></td><td>Джойстики (v1 = v2)</td></tr>
+  </tbody>
+</table>
+<p><strong>Спецификация модулей (BOM)</strong> — по списку изготовителя прибора.</p>
+
+<footer>
+  Версия руководства: прошивка <code>mast_control_v2</code> (OLED GUI, нуль D12 — 3&nbsp;с, шаг давления 2&nbsp;bar).
+  Парный файл: <code>Руководство_пользователя_v2.md</code>.
+</footer>
+
+</body>
+</html>
