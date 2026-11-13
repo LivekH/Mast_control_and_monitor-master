@@ -18,6 +18,8 @@
 |-------|------------|
 | `proteus_V1/` | Схема/симуляция Proteus v1 — открывать `Mast_control_and_monitor-master_scheme V3_Dwin.pdsprj` |
 
+**ШИМ 244 Hz (v1):** скетч `mast_control_v1_PWM244hz/`, описание — `docs/ШИМ_D11_CED252.md`.
+
 Версия **2** — отдельный каталог, например `lib_V2/`.
 
 ## Замечание по Wire

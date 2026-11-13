@@ -54,6 +54,8 @@
 
 В покое: `digitalWrite(D11, HIGH)` (см. `stopAllMotionOutputs()`).
 
+**Частота ШИМ:** в `mast_control_v2` — **~976 Hz** (`analogWrite`). Эксперимент **~244 Hz** (ориентир [Walvoil CED252](https://www.walvoil.com/allegati/catalogo/CED252_US.pdf) **100–150–220 Hz**) — папка `mast_control_v2_PWM244hz/`, см. **`docs/ШИМ_D11_CED252.md`**. Пин **D11** не меняется; у оригинального CED252 ШИМ может быть на **другом** выводе (например D9).
+
 ## Свободные / служебные на Nano
 
 | Arduino | Примечание |

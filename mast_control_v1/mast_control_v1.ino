@@ -56,7 +56,7 @@ int mast2_down_relay = 5; //D5 — реле «спуск» второй секц
 const uint8_t fingers_relay_close_pin = 6; //D6 — реле «закрыть» пальцы
 const uint8_t fingers_relay_open_pin = 7; //D7 — реле «открыть» пальцы
 
-int output_power = 11; //D11 — общий ШИМ на силовой ключ (нагрузка)
+int output_power = 11; //D11 — ШИМ ~976 Hz (стандарт analogWrite). Вариант ~244 Hz (CED252): mast_control_v1_PWM244hz/
 
 /*
 УДАЛИТЬ ПОСЛЕ ПРОВЕРКИ КОДА

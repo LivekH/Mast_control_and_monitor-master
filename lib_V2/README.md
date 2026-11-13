@@ -20,3 +20,5 @@
 | `proteus_V2/` | Симуляция v2 (`.pdsprj`) |
 
 Подробнее: `docs/План_версии_v2.md`, `libraries_v2.txt`.
+
+**ШИМ ~244 Hz:** скетч `mast_control_v2_PWM244hz/`, те же библиотеки; `docs/ШИМ_D11_CED252.md`.

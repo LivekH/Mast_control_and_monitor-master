@@ -87,7 +87,7 @@ const uint8_t fingers_relay_open_pin = 7; //D7 — реле «открыть» �
 // Единственное назначение пина ШИМ в проекте — строка output_power ниже (сейчас D11).
 // Выдача: applyMotionOutputs() → analogWrite(output_power, axis_*_out) значения 0…255.
 // Выключен: digitalWrite(output_power, HIGH) — см. stopAllMotionOutputs() и setup().
-int output_power = 11; //пин D11 Nano (аппаратный PWM → затвор Q1 на схеме)
+int output_power = 11; //D11, ШИМ ~976 Hz. Эксперимент ~244 Hz (CED252): mast_control_v2_PWM244hz/
 
 /*
 УДАЛИТЬ ПОСЛЕ ПРОВЕРКИ КОДА
