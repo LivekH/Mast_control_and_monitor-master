@@ -40,7 +40,7 @@
 ```
 
 **В репозитории для Proteus обычно стоит `1`** — под это собирается  
-`lib_V2/proteus_V2/firmware/mast_control_v2.ino.hex`.  
+`lib_V2/proteus_V2/firmware/mast_control_v2.ino.hex` (или `mast_control_v2_PWM244hz.ino.hex` для ~244 Hz).  
 **На живой Arduino Nano перед Upload ставьте `0`** и прошивайте из IDE, **не** подставляйте hex из `proteus_V2/firmware/` без пересборки с `0`.
 
 #### SSD1306 (Proteus) vs SSD1309 (железо)

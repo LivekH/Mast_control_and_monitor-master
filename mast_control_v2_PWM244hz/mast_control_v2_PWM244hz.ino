@@ -243,21 +243,47 @@ const JoyAxisProfile joyProf2 = {510, 30, 30, 60, 60}; //мачта 2
 const JoyAxisProfile joyProf3 = {510, 30, 30, 60, 60}; //«пальцы»: + = закрыть, − = открыть
 
 // ================== ШИМ ~244 Hz на D11 (Timer2) — см. docs/ШИМ_D11_CED252.md ==================
-// f_pwm ≈ 16 MHz / (256 · 256) ≈ 244 Hz; Walvoil CED252 PWM: 100-150-220 Hz; analogWrite ~976 Hz.
+// f_pwm ≈ 16 MHz / (256 · 256) ≈ 244 Hz. Без analogWrite() в loop — только OCR2A (устойчивее в Proteus).
 #include <avr/io.h>
+
+static uint8_t pwm244_duty_cached = 0xFF;
+static uint8_t pwm244_timer_running = 0;
 
 static inline void timer2PwmPrescaler256() {
   TCCR2B = (TCCR2B & 0b11111000) | 0x07; //делитель Timer2 /256
 }
 
+static void timer2Pwm244BeginOc2a() {
+  TCCR2A = (_BV(COM2A1) | _BV(WGM21) | _BV(WGM20)); //Fast PWM 8 bit, OC2A → D11
+  timer2PwmPrescaler256();
+  pwm244_timer_running = 1;
+}
+
+void pwm244OutputOff() {
+  if (pwm244_timer_running) {
+    TCCR2A &= ~(_BV(COM2A1) | _BV(COM2A0));
+    pwm244_timer_running = 0;
+  }
+  digitalWrite(output_power, HIGH); //«HIGH = выкл»
+  pwm244_duty_cached = 0xFF;
+}
+
 void analogWriteOutputPowerPwm244(uint8_t duty) {
-  analogWrite(output_power, duty);
-  timer2PwmPrescaler256(); //ядро снова ставит /64 — обязательно после каждой записи
+  duty = constrain(duty, 0, 255);
+  if (!pwm244_timer_running) {
+    timer2Pwm244BeginOc2a();
+    pwm244_duty_cached = 0xFF;
+  }
+  if (duty == pwm244_duty_cached) {
+    return;
+  }
+  OCR2A = duty;
+  pwm244_duty_cached = duty;
 }
 
 void initOutputPowerPwm244Hz() {
   pinMode(output_power, OUTPUT);
-  timer2PwmPrescaler256();
+  pwm244OutputOff();
 }
 
 uint8_t joy_relay_latch_axis_1 = 0; //0 нет, 1 «+»/вверх/закрыть, 2 «−»; сброс только концевиком
@@ -711,7 +737,7 @@ void processJoystickAxisWithProfile(uint8_t analogPin, uint8_t axisIdx, int &adc
 }
 
 void stopAllMotionOutputs() {
-  digitalWrite(output_power, HIGH); //выключить ШИМ (логика «HIGH = выкл»)
+  pwm244OutputOff(); //D11: GPIO HIGH, без дёргания analogWrite/TCCR2B каждый loop
   digitalWrite(mast1_relay_up_pin, HIGH); //реле мачты 1 вверх — разомкнуто
   digitalWrite(mast1_relay_down_pin, HIGH); //реле мачты 1 вниз — разомкнуто
   digitalWrite(mast2_up_relay, HIGH); //реле мачты 2 вверх — разомкнуто
